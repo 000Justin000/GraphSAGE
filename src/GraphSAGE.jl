@@ -77,7 +77,7 @@ module GraphSAGE
         @assert length(layers) > 0 "number of layers must be positive"
 
         # first aggregator always pull input features
-        agg = (@eval $Symbol(layers[1]))((G,node_list) -> features[node_list], ks[1]);
+        agg = (@eval $(Symbol(layers[1])))((G,node_list) -> features[node_list], ks[1]);
         if length(layers) == 1
             # single layer, directly output
             tsf = Transformer(agg, dim_in, dim_out, σ);
@@ -87,11 +87,11 @@ module GraphSAGE
 
             # the inner layers, hidden to hidden
             for i in 2:length(layers)-1
-                agg = (@eval $Symbol(layers[i]))(tsf, ks[i]);
+                agg = (@eval $(Symbol(layers[i])))(tsf, ks[i]);
                 tsf = Transformer(agg, dim_h, dim_h, σ);
             end
 
-            agg = (@eval $Symbol(layers[end]))(tsf, ks[end]);
+            agg = (@eval $(Symbol(layers[end])))(tsf, ks[end]);
             tsf = Transformer(agg, dim_h, dim_out, σ);
         end
 
