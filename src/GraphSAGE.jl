@@ -1,4 +1,5 @@
 module GraphSAGE
+    using Statistics;
     using StatsBase: sample, Weights;
     using LightGraphs;
     using SimpleWeightedGraphs;
