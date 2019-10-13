@@ -1,8 +1,7 @@
 module GraphSAGE
     using Statistics;
-    using StatsBase: sample, Weights;
+    using StatsBase: sample;
     using LightGraphs;
-    using SimpleWeightedGraphs;
     using Flux;
 
     export graph_encoder;
@@ -17,13 +16,10 @@ module GraphSAGE
     function (c::SAGE)(G::AbstractGraph, node_list::Vector{Int})
         F, k, A = c.F, c.k, c.A;
 
-        # perform weighted sample
-        # note we are sampling without replacement here, hense the expected mean equals the true weighted average
         sampled_nbrs_list = Vector{Vector{Int}}();
         for u in node_list
             nbrs = inneighbors(G, u);
-            upbs = Vector{Float64}([weights(G)[u, v] for v in nbrs]);
-            push!(sampled_nbrs_list, length(nbrs) != 0 ? sample(nbrs, Weights(upbs), k) : []);
+            push!(sampled_nbrs_list, length(nbrs) > k ? sample(nbrs, k, replace=false) : nbrs);
         end
 
         # compute hidden vector of unique neighbors
