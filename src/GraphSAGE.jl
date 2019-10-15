@@ -69,7 +69,8 @@ module GraphSAGE
 
 
     # graph encoder
-    function graph_encoder(features::Vector, dim_in::Integer, dim_out::Integer, dim_h::Integer, layers::Vector{String}, ks::Vector{Int}, σ=relu)
+    function graph_encoder(features::Vector, dim_in::Integer, dim_out::Integer, dim_h::Integer, layers::Vector{String},
+                           ks::Vector{Int}=repeat([typemax(Int)], length(layers)), σ=relu)
         @assert length(layers) > 0
         @assert length(layers) == length(ks)
 
