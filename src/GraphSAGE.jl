@@ -25,7 +25,7 @@ module GraphSAGE
         # compute hidden vector of unique neighbors
         unique_nodes = union(node_list, sampled_nbrs_list...);
         u2i = Dict{Int,Int}(u=>i for (i,u) in enumerate(unique_nodes));
-        hh0 = F(G, unique_nodes; kwargs);
+        hh0 = F(G, unique_nodes; kwargs...);
 
         @assert length(hh0) > 0 "non of the vertices has incoming edge"
         sz = size(hh0[1]);
