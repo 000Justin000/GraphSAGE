@@ -13,7 +13,7 @@ module GraphSAGE
         A::Function;
     end
 
-    function (c::SAGE)(G::AbstractGraph, node_list::Vector{Int})
+    function (c::SAGE)(G::AbstractGraph, node_list::Vector{Int}; kwargs...)
         F, k, A = c.F, c.k, c.A;
 
         sampled_nbrs_list = Vector{Vector{Int}}();
@@ -25,7 +25,7 @@ module GraphSAGE
         # compute hidden vector of unique neighbors
         unique_nodes = union(node_list, sampled_nbrs_list...);
         u2i = Dict{Int,Int}(u=>i for (i,u) in enumerate(unique_nodes));
-        hh0 = F(G, unique_nodes);
+        hh0 = F(G, unique_nodes; kwargs);
 
         @assert length(hh0) > 0 "non of the vertices has incoming edge"
         sz = size(hh0[1]);
@@ -56,10 +56,10 @@ module GraphSAGE
         return Transformer(S, L);
     end
 
-    function (c::Transformer)(G::AbstractGraph, node_list::Vector{Int})
+    function (c::Transformer)(G::AbstractGraph, node_list::Vector{Int}; kwargs...)
         S, L = c.S, c.L;
 
-        hh1 = L.(S(G, node_list));
+        hh1 = L.(S(G, node_list; kwargs...));
 
         return hh1;
     end
@@ -69,15 +69,19 @@ module GraphSAGE
 
 
     # graph encoder
-    function graph_encoder(features::Vector, dim_in::Integer, dim_out::Integer, dim_h::Integer, layers::Vector{String},
-                           ks::Vector{Int}=repeat([typemax(Int)], length(layers)), σ=relu)
+    function graph_encoder(features::Vector, dim_in::Integer, dim_out::Integer, dim_h::Integer, layers::Vector{String};
+                           feature0::Vector=features, ks::Vector{Int}=repeat([typemax(Int)], length(layers)), σ=relu)
         @assert length(layers) > 0
         @assert length(layers) == length(ks)
 
         S2A = Dict{String,Function}("MeanSAGE" => (x->mean(x)), "MaxSAGE" => (x->max.(x...)), "SumSAGE" => (x->sum(x)));
 
+        function get_feature(G::AbstractGraph, node_list::Vector{Int}; exclusion::Set{Int}=Set{Int}())
+            return [u in exclusion ? feature0[u] : features[u] for u in node_list];
+        end
+
         # first aggregator always pull input features
-        sage = SAGE((G,node_list) -> features[node_list], ks[1], S2A[layers[1]]);
+        sage = SAGE(get_feature, ks[1], S2A[layers[1]]);
         if length(layers) == 1
             # single layer, directly output
             tsfm = Transformer(sage, dim_in, dim_out, σ);
