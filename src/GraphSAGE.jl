@@ -6,17 +6,64 @@ module GraphSAGE
 
     export graph_encoder;
 
-    # sampler & aggregator
-    struct SAGE{T}
-        F::T;
-        k::Int;
-        A::Function;
+    struct AGG{F}
+        S::String;
+        L::Union{F, Nothing};
     end
 
-    function (c::SAGE)(G::AbstractGraph, node_list::Vector{Int}; kwargs...)
-        F, k, A = c.F, c.k, c.A;
+    function AGG(S::String, dim_h::Integer, dim_e::Integer, σ=relu)
+        """"
+        dim_h: dimension of vertice embedding
+        dim_e: dimension of edge embedding
+        """
 
-        sampled_nbrs_list = Vector{Vector{Int}}();
+        @assert S in ["Mean", "Max", "Sum", "MeanPooling", "MaxPooling", "SumPooling"];
+
+        if S in ["Mean", "Max", "Sum"]
+            return AGG(S, nothing);
+        else
+            return AGG(S, Dense(dim_h+dim_e, dim_h+dim_e, σ));
+        end
+    end
+
+    function (c::AGG)(hh::AbstractVector)
+        S, L = c.S, c.L;
+
+        if S == "Mean"
+            return mean(hh);
+        elseif S == "Max"
+            return max.(hh...);
+        elseif S == "Sum"
+            return sum(hh);
+        elseif S == "MeanPooling"
+            return mean(L.(hh));
+        elseif S == "MaxPooling"
+            return max.(L.(hh)...);
+        elseif S == "SumPooling"
+            return sum(L.(hh));
+        end
+    end
+
+    Flux.@treelike AGG;
+
+
+    # sampler & aggregator
+    struct SAGE
+        T::Union{Transformer, Nothing};
+        k::Integer;
+        A::AGG;
+        # default value (when vertex has no edge)
+        z::AbstractVector;
+    end
+
+    function SAGE(T::Union{Transformer, Nothing}, k::Integer, S::String, dim_h::Integer, dim_e::Integer, σ=relu)
+        return SAGE(T, k, AGG(S, dim_h, dim_e, σ), zeros(dim_h+dim_e));
+    end
+
+    function (c::SAGE)(G::AbstractGraph, node_list::Vector{Integer}, node_features::Function, edge_features::Function)
+        T, k, A, z = c.T, c.k, c.A, z;
+
+        sampled_nbrs_list = Vector{Vector{Integer}}();
         for u in node_list
             nbrs = inneighbors(G, u);
             push!(sampled_nbrs_list, length(nbrs) > k ? sample(nbrs, k, replace=false) : nbrs);
@@ -25,19 +72,22 @@ module GraphSAGE
         # compute hidden vector of unique neighbors
         unique_nodes = union(node_list, sampled_nbrs_list...);
         u2i = Dict{Int,Int}(u=>i for (i,u) in enumerate(unique_nodes));
-        hh0 = F(G, unique_nodes; kwargs...);
 
-        @assert length(hh0) > 0 "non of the vertices has incoming edge"
-        sz = size(hh0[1]);
-
-        # compute the mean hidden vector of the sampled neighbors
-        hh1_ = Vector{AbstractVector}();
-        for (u, sampled_nbrs) in zip(node_list, sampled_nbrs_list)
-            h_nbrs = length(sampled_nbrs) != 0 ? A([hh0[u2i[v]] for v in sampled_nbrs]) : zeros(sz);
-            push!(hh1_, vcat(hh0[u2i[u]], h_nbrs));
+        # if this SAGE is not a leaf, then call the child Transformer to get node representation at previous layer
+        if F != nothing
+            h0 = T(G, unique_nodes, node_features, edge_features);
+        else
+            h0 = [node_features(u) for u in unique_nodes];
         end
 
-        return hh1_;
+        # each vector can be decomposed as [h(v)*, edge_features(v,u)*, h(u)], where * means 'aggregated across v'
+        heh = Vector{AbstractVector}();
+        for (u, sampled_nbrs) in zip(node_list, sampled_nbrs_list)
+            he = length(sampled_nbrs) != 0 ? A(vcat(h0[u2i[v]], edge_features(v,u)) for v in sampled_nbrs) : z;
+            push!(heh, vcat(he, h0[u2i[u]]));
+        end
+
+        return heh;
     end
 
     Flux.@treelike SAGE;
@@ -45,23 +95,23 @@ module GraphSAGE
 
 
     # transformer
-    struct Transformer{T}
+    struct Transformer{F}
         S::SAGE;
-        L::T;
+        L::F;
     end
 
-    function Transformer(S::SAGE, dim_h0::Integer, dim_h1::Integer, σ=relu)
-        L = Dense(dim_h0*2, dim_h1, σ);
+    function Transformer(S::SAGE, dim_h0::Integer, dim_h1::Integer, dim_e::Integer, σ=relu)
+        L = Dense(dim_h0*2+dim_e, dim_h1, σ);
 
         return Transformer(S, L);
     end
 
-    function (c::Transformer)(G::AbstractGraph, node_list::Vector{Int}; kwargs...)
+    function (c::Transformer)(G::AbstractGraph, node_list::Vector{Integer}, node_features::Function, edge_features::Function)
         S, L = c.S, c.L;
 
-        hh1 = L.(S(G, node_list; kwargs...));
+        h1 = L.(S(G, node_list, node_features, edge_features));
 
-        return hh1;
+        return h1;
     end
 
     Flux.@treelike Transformer;
@@ -69,34 +119,27 @@ module GraphSAGE
 
 
     # graph encoder
-    function graph_encoder(features::Vector, dim_in::Integer, dim_out::Integer, dim_h::Integer, layers::Vector{String};
-                           feature0::Vector=features, ks::Vector{Int}=repeat([typemax(Int)], length(layers)), σ=relu)
+    function graph_encoder(dim_in::Integer, dim_out::Integer, dim_h::Integer, dim_e::Integer, layers::Vector{String},
+                           ks::Vector{Int}=repeat([typemax(Int)], length(layers)), σ=relu)
         @assert length(layers) > 0
         @assert length(layers) == length(ks)
 
-        S2A = Dict{String,Function}("MeanSAGE" => (x->mean(x)), "MaxSAGE" => (x->max.(x...)), "SumSAGE" => (x->sum(x)));
-
-        function get_feature(G::AbstractGraph, node_list::Vector{Int}; exclusion::Set{Int}=Set{Int}())
-            return [u in exclusion ? feature0[u] : features[u] for u in node_list];
-        end
-
-        # first aggregator always pull input features
-        sage = SAGE(get_feature, ks[1], S2A[layers[1]]);
+        sage = SAGE(nothing, ks[1], layers[1], dim_in, dim_e, σ);
         if length(layers) == 1
             # single layer, directly output
-            tsfm = Transformer(sage, dim_in, dim_out, σ);
+            tsfm = Transformer(sage, dim_in, dim_out, dim_e, σ);
         else
             # multiple layer, first encode to hidden
-            tsfm = Transformer(sage, dim_in, dim_h, σ);
+            tsfm = Transformer(sage, dim_in, dim_h, dim_e, σ);
 
             # the inner layers, hidden to hidden
             for i in 2:length(layers)-1
-                sage = SAGE(tsfm, ks[i], S2A[layers[i]]);
-                tsfm = Transformer(sage, dim_h, dim_h, σ);
+                sage = SAGE(tsfm, ks[i], layers[i], dim_h, dim_e, σ);
+                tsfm = Transformer(sage, dim_h, dim_h, dim_e, σ);
             end
 
-            sage = SAGE(tsfm, ks[end], S2A[layers[end]]);
-            tsfm = Transformer(sage, dim_h, dim_out, σ);
+            sage = SAGE(tsfm, ks[end], layers[end], dim_h, dim_e, σ);
+            tsfm = Transformer(sage, dim_h, dim_out, dim_e, σ);
         end
 
         return tsfm;
