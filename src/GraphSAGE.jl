@@ -95,9 +95,9 @@ module GraphSAGE
 
 
     # transformer
-    struct Transformer
+    struct Transformer{F}
         S::SAGE;
-        L::UnionAll;
+        L{F};
     end
 
     function Transformer(S::SAGE, dim_h0::Integer, dim_h1::Integer, dim_e::Integer, σ=relu)
