@@ -8,7 +8,7 @@ module GraphSAGE
 
     struct AGG
         S::String;
-        L::UnionAll;
+        L::Union{UnionAll, Nothing};
     end
 
     function AGG(S::String, dim_h::Integer, dim_e::Integer, σ=relu)
@@ -49,14 +49,14 @@ module GraphSAGE
 
     # sampler & aggregator
     struct SAGE
-        T::UnionAll;
+        T;
         k::Integer;
         A::AGG;
         # default value (when vertex has no edge)
         z::AbstractVector;
     end
 
-    function SAGE(T::UnionAll, k::Integer, S::String, dim_h::Integer, dim_e::Integer, σ=relu)
+    function SAGE(T, k::Integer, S::String, dim_h::Integer, dim_e::Integer, σ=relu)
         return SAGE(T, k, AGG(S, dim_h, dim_e, σ), zeros(dim_h+dim_e));
     end
 
@@ -95,9 +95,9 @@ module GraphSAGE
 
 
     # transformer
-    struct Transformer{F}
+    struct Transformer
         S::SAGE;
-        L::F;
+        L::UnionAll;
     end
 
     function Transformer(S::SAGE, dim_h0::Integer, dim_h1::Integer, dim_e::Integer, σ=relu)
@@ -121,8 +121,8 @@ module GraphSAGE
     # graph encoder
     function graph_encoder(dim_in::Integer, dim_out::Integer, dim_h::Integer, dim_e::Integer, layers::Vector{String},
                            ks::Vector{Int}=repeat([typemax(Int)], length(layers)), σ=relu)
-        @assert length(layers) > 0
-        @assert length(layers) == length(ks)
+        @assert length(layers) > 0;
+        @assert length(layers) == length(ks);
 
         sage = SAGE(nothing, ks[1], layers[1], dim_in, dim_e, σ);
         if length(layers) == 1
