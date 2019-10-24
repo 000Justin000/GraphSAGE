@@ -61,7 +61,7 @@ module GraphSAGE
     end
 
     function (c::SAGE)(G::AbstractGraph, node_list::Vector{Int}, node_features::Function, edge_features::Function)
-        T, k, A, z = c.T, c.k, c.A, z;
+        T, k, A, z = c.T, c.k, c.A, c.z;
 
         sampled_nbrs_list = Vector{Vector{Int}}();
         for u in node_list
