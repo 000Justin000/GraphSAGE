@@ -48,15 +48,15 @@ module GraphSAGE
 
 
     # sampler & aggregator
-    struct SAGE
-        T::Union{Transformer, Nothing};
+    struct SAGE{F}
+        T::Union{F, Nothing};
         k::Integer;
         A::AGG;
         # default value (when vertex has no edge)
         z::AbstractVector;
     end
 
-    function SAGE(T::Union{Transformer, Nothing}, k::Integer, S::String, dim_h::Integer, dim_e::Integer, σ=relu)
+    function SAGE(T::Union{F, Nothing}, k::Integer, S::String, dim_h::Integer, dim_e::Integer, σ=relu) where {F}
         return SAGE(T, k, AGG(S, dim_h, dim_e, σ), zeros(dim_h+dim_e));
     end
 
