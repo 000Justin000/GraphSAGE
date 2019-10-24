@@ -26,7 +26,7 @@ module GraphSAGE
         end
     end
 
-    function (c::AGG)(he::AbstractVector)
+    function (c::AGG)(he::Vector)
         S, L = c.S, c.L;
 
         if S == "Mean"
@@ -83,7 +83,7 @@ module GraphSAGE
         # each vector can be decomposed as [h(v)*, edge_features(v,u)*, h(u)], where * means 'aggregated across v'
         heh = Vector{AbstractVector}();
         for (u, sampled_nbrs) in zip(node_list, sampled_nbrs_list)
-            he = length(sampled_nbrs) != 0 ? A(vcat(h0[u2i[v]], edge_features(v,u)) for v in sampled_nbrs) : z;
+            he = length(sampled_nbrs) != 0 ? A([vcat(h0[u2i[v]], edge_features(v,u)) for v in sampled_nbrs]) : z;
             push!(heh, vcat(he, h0[u2i[u]]));
         end
 
