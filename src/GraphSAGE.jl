@@ -6,9 +6,9 @@ module GraphSAGE
 
     export graph_encoder;
 
-    struct AGG{F}
+    struct AGG
         S::String;
-        L::Union{F, Nothing};
+        L::UnionAll;
     end
 
     function AGG(S::String, dim_h::Integer, dim_e::Integer, σ=relu)
@@ -48,15 +48,15 @@ module GraphSAGE
 
 
     # sampler & aggregator
-    struct SAGE{F}
-        T::Union{F, Nothing};
+    struct SAGE
+        T::UnionAll;
         k::Integer;
         A::AGG;
         # default value (when vertex has no edge)
         z::AbstractVector;
     end
 
-    function SAGE(T::Union{F, Nothing}, k::Integer, S::String, dim_h::Integer, dim_e::Integer, σ=relu) where {F}
+    function SAGE(T::UnionAll, k::Integer, S::String, dim_h::Integer, dim_e::Integer, σ=relu)
         return SAGE(T, k, AGG(S, dim_h, dim_e, σ), zeros(dim_h+dim_e));
     end
 
