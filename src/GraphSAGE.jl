@@ -11,7 +11,7 @@ module GraphSAGE
         L::F;
     end
 
-    function AGG(S::String, dim_h::Integer, dim_e::Integer, σ=relu)
+    function AGG(S::String, dim_h::Int, dim_e::Int, σ=relu)
         """"
         dim_h: dimension of vertice embedding
         dim_e: dimension of edge embedding
@@ -50,20 +50,20 @@ module GraphSAGE
     # sampler & aggregator
     struct SAGE{F}
         T::F;
-        k::Integer;
+        k::Int;
         A::AGG;
         # default value (when vertex has no edge)
         z::AbstractVector;
     end
 
-    function SAGE(T::F, k::Integer, S::String, dim_h::Integer, dim_e::Integer, σ=relu) where {F}
+    function SAGE(T::F, k::Int, S::String, dim_h::Int, dim_e::Int, σ=relu) where {F}
         return SAGE(T, k, AGG(S, dim_h, dim_e, σ), zeros(dim_h+dim_e));
     end
 
-    function (c::SAGE)(G::AbstractGraph, node_list::Vector{Integer}, node_features::Function, edge_features::Function)
+    function (c::SAGE)(G::AbstractGraph, node_list::Vector{Int}, node_features::Function, edge_features::Function)
         T, k, A, z = c.T, c.k, c.A, z;
 
-        sampled_nbrs_list = Vector{Vector{Integer}}();
+        sampled_nbrs_list = Vector{Vector{Int}}();
         for u in node_list
             nbrs = inneighbors(G, u);
             push!(sampled_nbrs_list, length(nbrs) > k ? sample(nbrs, k, replace=false) : nbrs);
@@ -100,13 +100,13 @@ module GraphSAGE
         L::F;
     end
 
-    function Transformer(S::SAGE, dim_h0::Integer, dim_h1::Integer, dim_e::Integer, σ=relu)
+    function Transformer(S::SAGE, dim_h0::Int, dim_h1::Int, dim_e::Int, σ=relu)
         L = Dense(dim_h0*2+dim_e, dim_h1, σ);
 
         return Transformer(S, L);
     end
 
-    function (c::Transformer)(G::AbstractGraph, node_list::Vector{Integer}, node_features::Function, edge_features::Function)
+    function (c::Transformer)(G::AbstractGraph, node_list::Vector{Int}, node_features::Function, edge_features::Function)
         S, L = c.S, c.L;
 
         h1 = L.(S(G, node_list, node_features, edge_features));
@@ -119,7 +119,7 @@ module GraphSAGE
 
 
     # graph encoder
-    function graph_encoder(dim_in::Integer, dim_out::Integer, dim_h::Integer, dim_e::Integer, layers::Vector{String},
+    function graph_encoder(dim_in::Int, dim_out::Int, dim_h::Int, dim_e::Int, layers::Vector{String},
                            ks::Vector{Int}=repeat([typemax(Int)], length(layers)), σ=relu)
         @assert length(layers) > 0;
         @assert length(layers) == length(ks);
