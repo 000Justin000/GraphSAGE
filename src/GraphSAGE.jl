@@ -74,7 +74,7 @@ module GraphSAGE
         u2i = Dict{Int,Int}(u=>i for (i,u) in enumerate(unique_nodes));
 
         # if this SAGE is not a leaf, then call the child Transformer to get node representation at previous layer
-        if F != nothing
+        if T != nothing
             h0 = T(G, unique_nodes, node_features, edge_features);
         else
             h0 = [node_features(u) for u in unique_nodes];
