@@ -6,9 +6,9 @@ module GraphSAGE
 
     export graph_encoder;
 
-    struct AGG
+    struct AGG{F}
         S::String;
-        L::Union{UnionAll, Nothing};
+        L::F;
     end
 
     function AGG(S::String, dim_h::Integer, dim_e::Integer, σ=relu)
@@ -26,21 +26,21 @@ module GraphSAGE
         end
     end
 
-    function (c::AGG)(hh::AbstractVector)
+    function (c::AGG)(he::AbstractVector)
         S, L = c.S, c.L;
 
         if S == "Mean"
-            return mean(hh);
+            return mean(he);
         elseif S == "Max"
-            return max.(hh...);
+            return max.(he...);
         elseif S == "Sum"
-            return sum(hh);
+            return sum(he);
         elseif S == "MeanPooling"
-            return mean(L.(hh));
+            return mean(L.(he));
         elseif S == "MaxPooling"
-            return max.(L.(hh)...);
+            return max.(L.(he)...);
         elseif S == "SumPooling"
-            return sum(L.(hh));
+            return sum(L.(he));
         end
     end
 
@@ -48,15 +48,15 @@ module GraphSAGE
 
 
     # sampler & aggregator
-    struct SAGE
-        T;
+    struct SAGE{F}
+        T::F;
         k::Integer;
         A::AGG;
         # default value (when vertex has no edge)
         z::AbstractVector;
     end
 
-    function SAGE(T, k::Integer, S::String, dim_h::Integer, dim_e::Integer, σ=relu)
+    function SAGE(T::F, k::Integer, S::String, dim_h::Integer, dim_e::Integer, σ=relu) where {F}
         return SAGE(T, k, AGG(S, dim_h, dim_e, σ), zeros(dim_h+dim_e));
     end
 
@@ -97,7 +97,7 @@ module GraphSAGE
     # transformer
     struct Transformer{F}
         S::SAGE;
-        L{F};
+        L::F;
     end
 
     function Transformer(S::SAGE, dim_h0::Integer, dim_h1::Integer, dim_e::Integer, σ=relu)
