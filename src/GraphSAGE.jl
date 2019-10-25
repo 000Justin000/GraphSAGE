@@ -25,7 +25,7 @@ module GraphSAGE
         end
     end
 
-    function (c::AGG)(h::Vector{AbstractVector})
+    function (c::AGG)(h::Vector{Vector})
         S, L = c.S, c.L;
 
         if S == "Mean"
