@@ -77,13 +77,13 @@ module GraphSAGE
         if T != nothing
             h0 = T(G, unique_nodes, node_features, edge_features);
         else
-            h0 = [node_features(u) for u in unique_nodes];
+            h0 = [convert(Vector{Float32}, node_features(u)) for u in unique_nodes];
         end
 
         # each vector can be decomposed as [h(v)*, edge_features(v,u)*, h(u)], where * means 'aggregated across v'
         heh = Vector{AbstractVector}();
         for (u, sampled_nbrs) in zip(node_list, sampled_nbrs_list)
-            he = length(sampled_nbrs) != 0 ? A([vcat(h0[u2i[v]], edge_features(v,u)) for v in sampled_nbrs]) : z;
+            he = length(sampled_nbrs) != 0 ? A([vcat(h0[u2i[v]], convert(Vector{Float32}, edge_features(v,u))) for v in sampled_nbrs]) : z;
             push!(heh, vcat(he, h0[u2i[u]]));
         end
 
