@@ -29,7 +29,6 @@ module GraphSAGE
         S, L = c.S, c.L;
 
         if S in ["GCN_Mean", "SAGE_Mean"]
-            println(h);
             return mean(h);
         elseif S in ["SAGE_Max"]
             return max.(h...);
