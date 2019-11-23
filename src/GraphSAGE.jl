@@ -81,7 +81,7 @@ module GraphSAGE
         hh = Vector{AbstractVector}();
         for (u, sampled_nbrs) in zip(node_list, sampled_nbrs_list)
             if A.S in ["GCN_Mean"]
-                ht = A(vcat([h0[u2i[u]], [h0[u2i[v]] for v in sampled_nbrs]));
+                ht = A(vcat([h0[u2i[u]]], [h0[u2i[v]] for v in sampled_nbrs]));
             elseif A.S in ["SAGE_Mean", "SAGE_Max", "SAGE_Sum", "SAGE_MaxPooling"]
                 hn = length(sampled_nbrs) != 0 ? A([h0[u2i[v]] for v in sampled_nbrs]) : z;
                 ht = vcat(h0[u2i[u]], hn)
