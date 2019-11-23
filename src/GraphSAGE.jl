@@ -16,9 +16,9 @@ module GraphSAGE
         dim_h: dimension of vertice embedding
         """
 
-        @assert S in ["Mean", "Max", "Sum", "Pooling"];
+        @assert S in ["GCN_Mean", "SAGE_Mean", "SAGE_Max", "SAGE_Sum", "SAGE_MaxPooling"];
 
-        if S == "Pooling"
+        if S in ["SAGE_MaxPooling"]
             return AGG(S, Dense(dim_h, dim_h, σ));
         else
             return AGG(S, nothing);
@@ -28,18 +28,19 @@ module GraphSAGE
     function (c::AGG)(h::Vector)
         S, L = c.S, c.L;
 
-        if S == "Mean"
+        if S in ["GCN_Mean", "SAGE_Mean"]
             return mean(h);
-        elseif S == "Max"
+        elseif S in ["SAGE_Max"]
             return max.(h...);
-        elseif S == "Sum"
+        elseif S in ["SAGE_Sum"]
             return sum(h);
-        elseif S == "Pooling"
+        elseif S in ["SAGE_MaxPooling"]
             return max.(L.(h)...);
         end
     end
 
     Flux.@treelike AGG;
+
 
 
     # sampler & aggregator
@@ -75,11 +76,16 @@ module GraphSAGE
             h0 = [convert(Vector{Float32}, node_features(u)) for u in unique_nodes];
         end
 
-        # each vector can be decomposed as [h(v)*, edge_features(v,u)*, h(u)], where * means 'aggregated across v'
+        # each vector can be decomposed as [h(v)*, h(u)], where * means 'aggregated across v'
         hh = Vector{AbstractVector}();
         for (u, sampled_nbrs) in zip(node_list, sampled_nbrs_list)
-            hn = length(sampled_nbrs) != 0 ? A([h0[u2i[v]] for v in sampled_nbrs]) : z;
-            push!(hh, vcat(h0[u2i[u]], hn));
+            if A.S in ["GCN_Mean"]
+                ht = A(vcat([h0[u2i[v]] for v in sampled_nbrs], h0[u2i[u]]));
+            elseif A.S in ["SAGE_Mean", "SAGE_Max", "SAGE_Sum", "SAGE_MaxPooling"]
+                hn = length(sampled_nbrs) != 0 ? A([h0[u2i[v]] for v in sampled_nbrs]) : z;
+                ht = vcat(h0[u2i[u]], hn)
+            end
+            push!(hh, ht);
         end
 
         return hh;
@@ -96,7 +102,11 @@ module GraphSAGE
     end
 
     function Transformer(S::SAGE, dim_h0::Int, dim_h1::Int, σ=relu)
-        L = Dense(dim_h0*2, dim_h1, σ);
+        if S.A.S in ["GCN_Mean"]
+            L = Dense(dim_h0, dim_h1, σ);
+        elseif S.A.S in ["SAGE_Mean", "SAGE_Max", "SAGE_Sum", "SAGE_MaxPooling"]
+            L = Dense(dim_h0*2, dim_h1, σ);
+        end
 
         return Transformer(S, L);
     end
