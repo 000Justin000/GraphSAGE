@@ -16,7 +16,7 @@ module GraphSAGE
         dim_h: dimension of vertice embedding
         """
 
-        @assert S in ["GCN_Mean", "SAGE_Mean", "SAGE_Max", "SAGE_Sum", "SAGE_MaxPooling"];
+        @assert S in ["SAGE_GCN", "SAGE_Mean", "SAGE_Max", "SAGE_Sum", "SAGE_MaxPooling"];
 
         if S in ["SAGE_MaxPooling"]
             return AGG(S, Dense(dim_h, dim_h, σ));
@@ -28,7 +28,7 @@ module GraphSAGE
     function (c::AGG)(h::Vector)
         S, L = c.S, c.L;
 
-        if S in ["GCN_Mean", "SAGE_Mean"]
+        if S in ["SAGE_GCN", "SAGE_Mean"]
             return mean(h);
         elseif S in ["SAGE_Max"]
             return max.(h...);
@@ -79,7 +79,7 @@ module GraphSAGE
         # each vector can be decomposed as [h(v)*, h(u)], where * means 'aggregated across v'
         hh = Vector{AbstractVector}();
         for (u, sampled_nbrs) in zip(node_list, sampled_nbrs_list)
-            if A.S in ["GCN_Mean"]
+            if A.S in ["SAGE_GCN"]
                 ht = A(vcat([h0[u2i[u]]], [h0[u2i[v]] for v in sampled_nbrs]));
             elseif A.S in ["SAGE_Mean", "SAGE_Max", "SAGE_Sum", "SAGE_MaxPooling"]
                 hn = length(sampled_nbrs) != 0 ? A([h0[u2i[v]] for v in sampled_nbrs]) : z;
@@ -102,7 +102,7 @@ module GraphSAGE
     end
 
     function Transformer(S::SAGE, dim_h0::Int, dim_h1::Int, σ=relu)
-        if S.A.S in ["GCN_Mean"]
+        if S.A.S in ["SAGE_GCN"]
             L = Dense(dim_h0, dim_h1, σ);
         elseif S.A.S in ["SAGE_Mean", "SAGE_Max", "SAGE_Sum", "SAGE_MaxPooling"]
             L = Dense(dim_h0*2, dim_h1, σ);
