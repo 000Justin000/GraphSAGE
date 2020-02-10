@@ -28,14 +28,16 @@ module GraphSAGE
     function (c::AGG)(h::Vector)
         S, L = c.S, c.L;
 
+        H = Flux.hcat(h...);
+
         if S in ["SAGE_GCN", "SAGE_Mean"]
-            return mean(h);
+            return Flux.mean(H, dims=2)[:];
         elseif S in ["SAGE_Max"]
-            return max.(h...);
+            return Flux.maximum(H, dims=2)[:];
         elseif S in ["SAGE_Sum"]
-            return sum(h);
+            return Flux.sum(H, dims=2)[:];
         elseif S in ["SAGE_MaxPooling"]
-            return max.(L.(h)...);
+            return Flux.maximum(L(H), dims=2)[:];
         end
     end
 
