@@ -43,8 +43,6 @@ module GraphSAGE
 
     Flux.@treelike AGG;
 
-
-
     # sampler & aggregator
     struct SAGE{F}
         T::F;
