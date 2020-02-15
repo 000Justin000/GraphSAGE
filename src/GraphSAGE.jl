@@ -78,21 +78,19 @@ module GraphSAGE
 
         # each vector can be decomposed as [h(v)*, h(u)], where * means 'aggregated across v'
         hh = [if A.S in ["SAGE_GCN"]
-                  ht = A(vcat([h0[u2i[u]]], [h0[u2i[v]] for v in sampled_nbrs]));
+                  ht = A(vcat([h0[u2i[node_list[i]]]], [h0[u2i[nbr]] for nbr in sampled_nbrs_list[i]]));
               elseif A.S in ["SAGE_Mean", "SAGE_Max", "SAGE_Sum", "SAGE_MaxPooling"]
-                  hn = length(sampled_nbrs) != 0 ? A([h0[u2i[v]] for v in sampled_nbrs]) : z;
-                  ht = vcat(h0[u2i[u]], hn)
+                  hn = length(sampled_nbrs_list[i]) != 0 ? A([h0[u2i[nbr]] for nbr in sampled_nbrs_list[i]]) : z;
+                  ht = vcat(h0[u2i[node_list[i]]], hn);
               else
                   error("unexpected option")
               end
-              for (u, sampled_nbrs) in zip(node_list, sampled_nbrs_list)];
+              for i in 1:length(node_list)];
 
         return hh;
     end
 
     Flux.@treelike SAGE;
-
-
 
     # transformer
     struct Transformer{F}
