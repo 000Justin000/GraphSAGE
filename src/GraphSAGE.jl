@@ -77,16 +77,15 @@ module GraphSAGE
         end
 
         # each vector can be decomposed as [h(v)*, h(u)], where * means 'aggregated across v'
-        hh = Vector{AbstractVector}();
-        for (u, sampled_nbrs) in zip(node_list, sampled_nbrs_list)
-            if A.S in ["SAGE_GCN"]
-                ht = A(vcat([h0[u2i[u]]], [h0[u2i[v]] for v in sampled_nbrs]));
-            elseif A.S in ["SAGE_Mean", "SAGE_Max", "SAGE_Sum", "SAGE_MaxPooling"]
-                hn = length(sampled_nbrs) != 0 ? A([h0[u2i[v]] for v in sampled_nbrs]) : z;
-                ht = vcat(h0[u2i[u]], hn)
-            end
-            push!(hh, ht);
-        end
+        hh = [if A.S in ["SAGE_GCN"]
+                  ht = A(vcat([h0[u2i[u]]], [h0[u2i[v]] for v in sampled_nbrs]));
+              elseif A.S in ["SAGE_Mean", "SAGE_Max", "SAGE_Sum", "SAGE_MaxPooling"]
+                  hn = length(sampled_nbrs) != 0 ? A([h0[u2i[v]] for v in sampled_nbrs]) : z;
+                  ht = vcat(h0[u2i[u]], hn)
+              else
+                  error("unexpected option")
+              end
+              for (u, sampled_nbrs) in zip(node_list, sampled_nbrs_list)];
 
         return hh;
     end
@@ -120,8 +119,6 @@ module GraphSAGE
     end
 
     Flux.@treelike Transformer;
-
-
 
     # graph encoder
     function graph_encoder(dim_in::Int, dim_out::Int, dim_h::Int, layers::Vector{String};
