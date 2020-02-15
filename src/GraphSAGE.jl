@@ -94,8 +94,6 @@ module GraphSAGE
 
     Flux.@treelike SAGE;
 
-
-
     # transformer
     struct Transformer{F}
         S::SAGE;
