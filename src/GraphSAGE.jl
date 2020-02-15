@@ -3,6 +3,7 @@ module GraphSAGE
     using StatsBase: sample;
     using LightGraphs;
     using Flux;
+    using Zygote;
 
     export graph_encoder;
 
@@ -73,24 +74,27 @@ module GraphSAGE
         if T != nothing
             h0 = T(G, unique_nodes, node_features);
         else
-            h0 = [f32(node_features(u)) for u in unique_nodes];
+            h0 = [convert(Vector{Float32}, node_features(u)) for u in unique_nodes];
         end
 
         # each vector can be decomposed as [h(v)*, h(u)], where * means 'aggregated across v'
-        hh = [if A.S in ["SAGE_GCN"]
-                  ht = A(vcat([h0[u2i[node_list[i]]]], [h0[u2i[nbr]] for nbr in sampled_nbrs_list[i]]));
-              elseif A.S in ["SAGE_Mean", "SAGE_Max", "SAGE_Sum", "SAGE_MaxPooling"]
-                  hn = length(sampled_nbrs_list[i]) != 0 ? A([h0[u2i[nbr]] for nbr in sampled_nbrs_list[i]]) : z;
-                  ht = vcat(h0[u2i[node_list[i]]], hn);
-              else
-                  error("unexpected option")
-              end
-              for i in 1:length(node_list)];
+        hh = Vector{AbstractVector}();
+        for (u, sampled_nbrs) in zip(node_list, sampled_nbrs_list)
+            if A.S in ["SAGE_GCN"]
+                ht = A(vcat([h0[u2i[u]]], [h0[u2i[v]] for v in sampled_nbrs]));
+            elseif A.S in ["SAGE_Mean", "SAGE_Max", "SAGE_Sum", "SAGE_MaxPooling"]
+                hn = length(sampled_nbrs) != 0 ? A([h0[u2i[v]] for v in sampled_nbrs]) : z;
+                ht = vcat(h0[u2i[u]], hn)
+            end
+            push!(hh, ht);
+        end
 
         return hh;
     end
 
     Flux.@treelike SAGE;
+
+
 
     # transformer
     struct Transformer{F}
@@ -117,6 +121,8 @@ module GraphSAGE
     end
 
     Flux.@treelike Transformer;
+
+
 
     # graph encoder
     function graph_encoder(dim_in::Int, dim_out::Int, dim_h::Int, layers::Vector{String};
