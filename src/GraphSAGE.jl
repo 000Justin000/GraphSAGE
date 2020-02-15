@@ -73,7 +73,7 @@ module GraphSAGE
         if T != nothing
             h0 = T(G, unique_nodes, node_features);
         else
-            h0 = [convert(Vector{Float32}, node_features(u)) for u in unique_nodes];
+            h0 = [f32(node_features(u)) for u in unique_nodes];
         end
 
         # each vector can be decomposed as [h(v)*, h(u)], where * means 'aggregated across v'
