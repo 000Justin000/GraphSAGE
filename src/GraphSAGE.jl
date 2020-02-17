@@ -3,6 +3,7 @@ module GraphSAGE
     using StatsBase: sample;
     using LightGraphs;
     using Flux;
+    using Zygote;
     using Zygote: Buffer, bufferfrom;
 
     export graph_encoder;
