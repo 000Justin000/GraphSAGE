@@ -3,6 +3,7 @@ module GraphSAGE
     using StatsBase: sample;
     using LightGraphs;
     using Flux;
+    using Zygote: Buffer;
 
     export graph_encoder;
 
@@ -66,8 +67,30 @@ module GraphSAGE
         end
 
         # compute hidden vector of unique neighbors
-        unique_nodes = union(node_list, sampled_nbrs_list...);
-        u2i = Dict{Int,Int}(u=>i for (i,u) in enumerate(unique_nodes));
+        function zygote_unique(x)
+            ux = Set();
+            bf = Buffer(x, 0);
+            for x_ in x
+                if !in(x_, ux)
+                    push!(ux, x_);
+                    push!(bf, x_);
+                end
+            end
+
+            return copy(bf);
+        end
+
+        function zygote_u2i(uu, n)
+            bf = bufferfrom(-ones(Int,n));
+            for (i,u) in enumerate(uu)
+                bf[u] = i;
+            end
+
+            return copy(bf);
+        end
+
+        unique_nodes = zygote_unique(vcat(node_list, sampled_nbrs_list...));
+        u2i = zygote_u2i(unique_nodes, nv(G));
 
         # if this SAGE is not a leaf, then call the child Transformer to get node representation at previous layer
         if T != nothing
