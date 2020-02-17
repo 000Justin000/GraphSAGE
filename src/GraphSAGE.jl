@@ -78,6 +78,10 @@ module GraphSAGE
                 end
             end
 
+            println(x)
+            println("-----------")
+            println(bf)
+
             return copy(bf);
         end
 
