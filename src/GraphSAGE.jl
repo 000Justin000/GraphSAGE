@@ -55,7 +55,7 @@ module GraphSAGE
     end
 
     function SAGE(T::F, k::Int, S::String, dim_h::Int, σ=relu) where {F}
-        return SAGE(T, k, AGG(S, dim_h, σ), zeros(dim_h));
+        return SAGE(T, k, AGG(S, dim_h, σ), zeros(Float32, dim_h));
     end
 
     function (c::SAGE)(G::AbstractGraph, node_list::Vector{Int}, node_features::Function)
