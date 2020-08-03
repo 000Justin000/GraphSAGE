@@ -1,23 +1,23 @@
-# Julia GraphSAGE Implementation
-### Author: Junteng Jia [jj585@cornell.edu](mailto:jj585@cornell.edu)
+## Julia GraphSAGE Implementation
+#### Author: Junteng Jia [email](mailto:jj585@cornell.edu)
 
 Basic reference Julia implementation of [GraphSAGE](https://github.com/williamleif/GraphSAGE).
 The goal of this project is to provide a native and efficient implementation for the Julia graph learning community.
-The code is intended to be simpler, more extensible, and easier to work with than the TensorFlow version.
+The code is intended to be simpler, more extensible, and easier to work with than the original TensorFlow version.
 
 Currently, we support the supervised versions of GraphSAGE-GCN, GraphSAGE-mean, GraphSAGE-max, and GraphSAGE-pooling.
 
-### Requirements
+#### Requirements
 
 Julia > 1.0, and Flux = 0.9 is required.
 
-### Installation
+#### Installation
 
 ```julia
 ] add https://github.com/000Justin000/GraphSAGE
 ```
 
-### Basic Usage
+#### Basic Usage
 
 First, define a vertex encoder with the following function call:
 ```julia
@@ -34,7 +34,7 @@ Args:
 
 Once you define the graph encoder, the way to use it is:
 ```julia
-embeddings = enc(G::AbstractGraph, node_list::Vector{Int}, node_features::Function)
+embeddings = encoder(G::AbstractGraph, node_list::Vector{Int}, node_features::Function)
 """
 Args:
   G: is a lightGraph object
