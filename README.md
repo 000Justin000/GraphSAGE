@@ -1,5 +1,5 @@
 ## Julia GraphSAGE Implementation
-#### Author: Junteng Jia [email](mailto:jj585@cornell.edu)
+#### Author: Junteng Jia
 
 Basic reference Julia implementation of [GraphSAGE](https://github.com/williamleif/GraphSAGE).
 The goal of this project is to provide a native and efficient implementation for the Julia graph learning community.
@@ -42,3 +42,5 @@ Args:
   node_features: a function that maps a list of vertex indices to their features
 """
 ```
+
+If you have any questions, please email to [jj585@cornell.edu](mailto:jj585@cornell.edu).
