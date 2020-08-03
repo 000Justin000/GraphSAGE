@@ -50,8 +50,7 @@ module GraphSAGE
         T::F;
         k::Int;
         A::AGG;
-        # default value (when vertex has no edge)
-        z::AbstractVector;
+        z::AbstractVector; # default value (when vertex has no edge)
     end
 
     function SAGE(T::F, k::Int, S::String, dim_h::Int, σ=relu) where {F}
@@ -95,8 +94,6 @@ module GraphSAGE
 
     Flux.@treelike SAGE;
 
-
-
     # transformer
     struct Transformer{F}
         S::SAGE;
@@ -128,6 +125,19 @@ module GraphSAGE
     # graph encoder
     function graph_encoder(dim_in::Int, dim_out::Int, dim_h::Int, layers::Vector{String};
                            ks::Vector{Int}=repeat([typemax(Int)], length(layers)), σ=relu)
+    """
+    Args:
+       dim_in: node feature dimension
+      dim_out: embedding dimension
+        dim_h: hidden dimension
+       layers: each is a convolution layer of a certain convolution type
+           ks: max number of sampled neighbors to pull
+
+    Returns:
+         tsfm: a model that takes 1) graph topology 2) vertex features 3) vertices to be encoded 
+               as inputs and gives vertex embeddings as output
+    """
+
         @assert length(layers) > 0;
         @assert length(layers) == length(ks);
 
