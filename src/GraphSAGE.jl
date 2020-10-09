@@ -106,13 +106,13 @@ module GraphSAGE
 
 
 
-    # graph encoder
-    function graph_encoder(method::String, dim_in::Int, dim_out::Int, dim_h::Int, nl::Int; k::Int=typemax(Int), σ=relu)
+    # graph predictor
+    function graph_predictor(method::String, dim_in::Int, dim_out::Int, dim_h::Int, nl::Int; k::Int=typemax(Int), σ=relu)
     """
     Args:
        method: [SAGE_GCN, SAGE_Mean, SAGE_Max, SAGE_MaxPooling, SAGE_SmoothCLS]
        dim_in: node feature dimension
-      dim_out: embedding dimension
+      dim_out: predicting dimension, dim_out == 1 indicate regression, otherwise classifiction
         dim_h: hidden dimension
             k: max number of sampled neighbors to pull
 
@@ -136,7 +136,7 @@ module GraphSAGE
             agg_type = "Max";
             cmb_type = "CAT";
             pooling = true;
-        elseif method == "SAGE_SmoothCLS"
+        elseif method == "SAGE_Smooth"
             agg_type = "Mean";
             cmb_type = "AVG";
             pooling = false;
@@ -165,9 +165,9 @@ module GraphSAGE
                 tsfm = TSFM(sage, Dense(dim_h*nc, dim_h, σ));
             end
 
-            encoder = tsfm;
-        elseif method == "SAGE_SmoothCLS"
-            mlp = Chain(Dense(dim_in, dim_h, σ), Dense(dim_h, dim_h, σ), Dense(dim_h, dim_out, softmax));
+            predictor = TSFM(tsfm, Dense(dim_h, dim_out, dim_out == 1 ? identity : softmax));
+        elseif method == "SAGE_Smooth"
+            mlp = Chain(Dense(dim_in, dim_h, σ), Dense(dim_h, dim_h, σ), Dense(dim_h, dim_out, dim_out == 1 ? identity : softmax));
             tsfm = TSFM(nothing, mlp);
 
             sage = SAGE(tsfm, k, dim_out; pooling=pooling, σ=σ, agg_type=agg_type, cmb_type=cmb_type);
@@ -175,9 +175,9 @@ module GraphSAGE
                 sage = SAGE(sage, k, dim_out; pooling=pooling, σ=σ, agg_type=agg_type, cmb_type=cmb_type);
             end
 
-            encoder = sage;
+            predictor = sage;
         end
 
-        return encoder;
+        return predictor;
     end
 end
