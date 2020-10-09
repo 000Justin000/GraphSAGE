@@ -4,7 +4,7 @@ module GraphSAGE
     using LightGraphs;
     using Flux;
 
-    export graph_encoder;
+    export graph_predictor;
 
     # sampler & aggregator
     struct SAGE{Q,F}
