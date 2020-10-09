@@ -90,10 +90,6 @@ module GraphSAGE
         L::F;              # transformation functor applied to the hidden vector of each vertex
     end
 
-    function TSFM(P::Q, L::F) where {Q,F}
-        return TSFM(P, L);
-    end
-
     function (tsfm::TSFM)(G::AbstractGraph, node_list::Vector{Int}, node_to_features::Function)
         P, L = tsfm.P, tsfm.L;
 
