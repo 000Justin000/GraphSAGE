@@ -165,9 +165,9 @@ module GraphSAGE
                 tsfm = TSFM(sage, Dense(dim_h*nc, dim_h, σ));
             end
 
-            predictor = TSFM(tsfm, Dense(dim_h, dim_out, dim_out == 1 ? identity : softmax));
+            predictor = TSFM(tsfm, Chain(Dense(dim_h, dim_out), dim_out == 1 ? identity : softmax));
         elseif method == "SAGE_Smooth"
-            mlp = Chain(Dense(dim_in, dim_h, σ), Dense(dim_h, dim_h, σ), Dense(dim_h, dim_out, dim_out == 1 ? identity : softmax));
+            mlp = Chain(Dense(dim_in, dim_h, σ), Dense(dim_h, dim_h, σ), Dense(dim_h, dim_out), dim_out == 1 ? identity : softmax);
             tsfm = TSFM(nothing, mlp);
 
             sage = SAGE(tsfm, k, dim_out; pooling=pooling, σ=σ, agg_type=agg_type, cmb_type=cmb_type);
