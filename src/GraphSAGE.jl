@@ -4,7 +4,7 @@ module GraphSAGE
     using LightGraphs;
     using Flux;
 
-    export graph_predictor;
+    export node_encoder;
 
     # sampler & aggregator
     struct SAGE{Q,F}
@@ -106,8 +106,8 @@ module GraphSAGE
 
 
 
-    # graph predictor
-    function graph_predictor(method::String, dim_in::Int, dim_out::Int, dim_h::Int, nl::Int; k::Int=typemax(Int), σ=relu)
+    # graph encoder
+    function node_encoder(method::String, dim_in::Int, dim_out::Int, dim_h::Int, nl::Int; k::Int=typemax(Int), σ=relu)
     """
     Args:
        method: [SAGE_GCN, SAGE_Mean, SAGE_Max, SAGE_MaxPooling, SAGE_SmoothCLS]
@@ -118,7 +118,7 @@ module GraphSAGE
 
     Returns:
       encoder: a model that takes 1) graph topology 2) vertex features 3) vertices to be encoded 
-               as inputs and gives vertex embeddings / predictive probabilities as output
+               as inputs and gives vertex embeddings
     """
         if method == "SAGE_GCN"
             agg_type = "Mean";
@@ -162,22 +162,22 @@ module GraphSAGE
                 end
 
                 sage = SAGE(tsfm, k, dim_h; pooling=pooling, σ=σ, agg_type=agg_type, cmb_type=cmb_type);
-                tsfm = TSFM(sage, Dense(dim_h*nc, dim_h, σ));
+                tsfm = TSFM(sage, Dense(dim_h*nc, dim_out, σ));
             end
 
-            predictor = TSFM(tsfm, Chain(Dense(dim_h, dim_out), dim_out == 1 ? identity : softmax));
+            encoder = tsfm;
         elseif method == "SAGE_Smooth"
-            mlp = Chain(Dense(dim_in, dim_h, σ), Dense(dim_h, dim_h, σ), Dense(dim_h, dim_out), dim_out == 1 ? identity : softmax);
+            mlp = Chain(Dense(dim_in, dim_h, σ), Dense(dim_h, dim_h, σ), Dense(dim_h, dim_out, σ));
             tsfm = TSFM(nothing, mlp);
 
             sage = SAGE(tsfm, k, dim_out; pooling=pooling, σ=σ, agg_type=agg_type, cmb_type=cmb_type);
-            for i in 2:nl-1
+            for i in 2:nl
                 sage = SAGE(sage, k, dim_out; pooling=pooling, σ=σ, agg_type=agg_type, cmb_type=cmb_type);
             end
 
-            predictor = sage;
+            encoder = sage;
         end
 
-        return predictor;
+        return encoder;
     end
 end
