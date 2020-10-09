@@ -121,6 +121,8 @@ module GraphSAGE
             k: max number of sampled neighbors to pull
 
     Returns:
+      encoder: a model that takes 1) graph topology 2) vertex features 3) vertices to be encoded 
+               as inputs and gives vertex embeddings / predictive probabilities as output
     """
         if method == "SAGE_GCN"
             agg_type = "Mean";
